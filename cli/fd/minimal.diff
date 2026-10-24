@@ -1,0 +1,10 @@
+Leave jemalloc optional and out of the default features.
+Apply with `patch -p0 -i minimal.diff` from o/cli/fd.
+--- fd-10.2.0/Cargo.toml
++++ fd-10.2.0/Cargo.toml
+@@ -91,4 +91,4 @@
+ use-jemalloc = ["jemallocator"]
+ completions = ["clap_complete"]
+ base = ["use-jemalloc"]
+-default = ["use-jemalloc", "completions"]
++default = ["completions"]

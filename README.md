@@ -69,6 +69,43 @@ also runs that smoke before it finishes.
 ./scripts/test-overlay.sh
 ```
 
+## CLI programs
+
+`cli/rg`, `cli/fd`, `cli/hexyl`, and `cli/jaq` are upstream Rust tools
+built with that same cargo_cosmo toolchain. Each `collectbuild`
+downloads the pinned archive, checks `check.signature`, applies
+`minimal.diff` when the package has one, and apelinks one fat binary.
+They stay off the default `cli` aggregate, and each one waits for
+`lang/rust`.
+
+```sh
+bash ./.github/scripts/collectbuild cli/rg
+bash ./.github/scripts/collectbuild cli/fd
+bash ./.github/scripts/collectbuild cli/hexyl
+bash ./.github/scripts/collectbuild cli/jaq
+```
+
+The results are `results/bin/rg.com`, `results/bin/fd.com`,
+`results/bin/hexyl.com`, and `results/bin/jaq.com`, plus the x86_64
+and aarch64 ELF slices. `rg` is ripgrep 14.1.1, `fd` is 10.2.0,
+`hexyl` is 0.16.0, and `jaq` is 3.1.2.
+
+`jaq` is the one meant to be wrapped by another language. It is a
+jq-compatible filter with `--from` and `--to` for JSON, YAML, TOML,
+XML, CBOR, and CSV, so a generated binding can offer that conversion
+without a C library in the host language.
+
+`minimal.diff` for `rg` and `fd` turns off jemalloc. The cosmo target
+reports `env=musl`, which is the switch those projects use to compile
+jemalloc, and cargo_cosmo does not retarget a C allocator once per
+architecture. libcosmo remains the allocator. hexyl needs no patch.
+`jaq` defaults to mimalloc, which is the same kind of C allocator, so
+its patch leaves that feature out.
+
+`cli/build-ape` also sets `profile.release.strip=false`. fd's release
+profile sets `strip = true`, and that removes the ELF symbol table
+before `fixupobj` rewrites the image.
+
 ## What the recipe pins
 
 Stock superconfigure downloads the cargo_cosmo archive as

@@ -1,0 +1,14 @@
+Leave mimalloc optional and out of the default features.
+It is a C allocator, and cargo_cosmo cannot retarget cc once per architecture.
+Apply with `patch -p0 -i minimal.diff` from o/cli/jaq.
+--- jaq-3.1.2/jaq/Cargo.toml
++++ jaq-3.1.2/jaq/Cargo.toml
+@@ -12,7 +12,7 @@
+ rust-version = "1.70"
+ 
+ [features]
+-default = ["mimalloc"]
++default = []
+ 
+ [dependencies]
+ jaq-all  = { workspace = true, features = ["formats", "std-all"] }

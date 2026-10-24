@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+bin=${1:?rg binary required}
+dir=$(mktemp -d)
+trap 'rm -rf "$dir"' EXIT HUP INT TERM
+printf 'alpha ape\nbeta\n' > "$dir/note.txt"
+out=$(bash "$bin" -n --no-ignore alpha "$dir")
+printf '%s\n' "$out"
+printf '%s\n' "$out" | grep -F -q 'alpha ape'
+ver=$(bash "$bin" --version)
+printf '%s\n' "$ver"
+printf '%s\n' "$ver" | grep -F -q 'ripgrep 14.1.1'

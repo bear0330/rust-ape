@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+bin=${1:?jaq binary required}
+json=$(printf '%s\n' '{"name":"ape","n":2}' | bash "$bin" -r '.name')
+printf '%s\n' "$json"
+[ "$json" = ape ]
+yaml=$(printf '%s\n' 'name: ape' | bash "$bin" -c --from yaml '.')
+printf '%s\n' "$yaml"
+printf '%s\n' "$yaml" | grep -F -q '{"name":"ape"}'
+ver=$(bash "$bin" --version)
+printf '%s\n' "$ver"
+printf '%s\n' "$ver" | grep -F -q 'jaq 3.1.2'

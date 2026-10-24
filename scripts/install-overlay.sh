@@ -20,10 +20,30 @@ ACTUAL=$(git -C "$SUPER" rev-parse HEAD 2>/dev/null || true)
 # and do not reuse this tree's Cosmopolitan checkout.
 mkdir -p "$SUPER/.ape-overlay-backups"
 BACKUPS=$(mktemp -d "$SUPER/.ape-overlay-backups/rust-ape.XXXXXX")
-DESTINATION=$SUPER/lang/rust
-if [ -e "$DESTINATION" ]; then mkdir -p "$BACKUPS/lang"; mv "$DESTINATION" "$BACKUPS/lang/rust"; fi
-mkdir -p "$SUPER/lang"
-cp -a "$ROOT/lang/rust" "$DESTINATION"
-chmod +x "$DESTINATION/stage" "$DESTINATION/patch-wrapper"
-grep -Fqx 'include lang/rust/BUILD.mk' "$SUPER/lang/BUILD.mk" || printf '\ninclude lang/rust/BUILD.mk\n' >> "$SUPER/lang/BUILD.mk"
+install_tree() {
+  relative=$1
+  destination=$SUPER/$relative
+  mkdir -p "$(dirname -- "$destination")"
+  if [ -e "$destination" ]; then
+    mkdir -p "$BACKUPS/$(dirname -- "$relative")"
+    mv "$destination" "$BACKUPS/$relative"
+  fi
+  cp -a "$ROOT/$relative" "$destination"
+}
+enable() { grep -Fqx "$1" "$SUPER/$2" || printf '\n%s\n' "$1" >> "$SUPER/$2"; }
+install_tree lang/rust
+install_tree cli/rg
+install_tree cli/fd
+install_tree cli/hexyl
+install_tree cli/jaq
+mkdir -p "$SUPER/cli"
+cp -a "$ROOT/cli/build-ape" "$SUPER/cli/build-ape"
+chmod +x "$SUPER/lang/rust/stage" "$SUPER/lang/rust/patch-wrapper" "$SUPER/cli/build-ape" \
+  "$SUPER/cli/rg/smoke" "$SUPER/cli/fd/smoke" "$SUPER/cli/hexyl/smoke" \
+  "$SUPER/cli/jaq/smoke"
+enable 'include lang/rust/BUILD.mk' lang/BUILD.mk
+enable 'include cli/rg/BUILD.mk' cli/BUILD.mk
+enable 'include cli/fd/BUILD.mk' cli/BUILD.mk
+enable 'include cli/hexyl/BUILD.mk' cli/BUILD.mk
+enable 'include cli/jaq/BUILD.mk' cli/BUILD.mk
 printf 'Installed Rust overlay into %s. Backup: %s\n' "$SUPER" "$BACKUPS"

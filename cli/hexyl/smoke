@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+bin=${1:?hexyl binary required}
+dir=$(mktemp -d)
+trap 'rm -rf "$dir"' EXIT HUP INT TERM
+printf 'ABC' > "$dir/bytes"
+out=$(bash "$bin" "$dir/bytes")
+printf '%s\n' "$out"
+printf '%s\n' "$out" | grep -F -q '41 42 43'
+ver=$(bash "$bin" --version)
+printf '%s\n' "$ver"
+printf '%s\n' "$ver" | grep -F -q 'hexyl 0.16.0'

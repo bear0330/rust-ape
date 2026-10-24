@@ -1,0 +1,73 @@
+#!/bin/sh
+# Build one Rust CLI with the cargo_cosmo tree that lang/rust configured,
+# then copy the fat APE into results/bin and run that package's smoke.
+set -eu
+
+usage() {
+  echo "Usage: $0 build|fatten PKG TREE BIN" >&2
+  exit 2
+}
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+COSMO=$ROOT/o/lang/rust/cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce
+TARGET=$ROOT/o/cli/cargo-target
+NIGHTLY=nightly-2026-08-23
+
+clear_host_toolchain() {
+  unset CC CXX LD AR STRIP OBJCOPY RANLIB NM
+  unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
+}
+
+[ "$#" -eq 4 ] || usage
+cmd=$1
+pkg=$2
+tree=$3
+bin=$4
+src=$ROOT/o/cli/$pkg/$tree
+
+case "$cmd" in
+  build)
+    [ -d "$src" ] || {
+      echo "cli/$pkg: missing $src" >&2
+      exit 1
+    }
+    [ -x "$COSMO/toolchain/cosmocc/bin/apelink" ] || {
+      echo "cli/$pkg: cargo_cosmo is not configured; build lang/rust first" >&2
+      exit 1
+    }
+    clear_host_toolchain
+    jobs=${CARGO_BUILD_JOBS:-${MAXPROC:-4}}
+    cd "$src"
+    # The extracted tree is not a git checkout. Git refuses to ascend into
+    # a ceiling directory, so the parent is the ceiling. Naming $src itself
+    # does not stop the walk, and a build script would embed this
+    # repository's commit.
+    # strip=true passes --strip-all. fixupobj then rejects the image
+    # because the ELF symbol table is already gone.
+    PATH="$COSMO/tools:$PATH" \
+      CARGO_COSMO_TOOLCHAIN=$NIGHTLY \
+      CARGO_BUILD_JOBS=$jobs \
+      CARGO_TARGET_DIR=$TARGET \
+      GIT_CEILING_DIRECTORIES=$(dirname "$src") \
+      cargo cosmo build --release --bin "$bin" \
+        --config profile.release.strip=false
+    ;;
+  fatten)
+    com=$src/target/cosmo/release/$bin.com
+    x86=$TARGET/x86_64-unknown-cosmo/release/$bin
+    arm=$TARGET/aarch64-unknown-cosmo/release/$bin
+    [ -f "$com" ] || { echo "cli/$pkg: missing $com" >&2; exit 1; }
+    [ -f "$x86" ] || { echo "cli/$pkg: missing $x86" >&2; exit 1; }
+    [ -f "$arm" ] || { echo "cli/$pkg: missing $arm" >&2; exit 1; }
+    mkdir -p "$ROOT/results/bin"
+    cp -f "$com" "$ROOT/results/bin/$bin.com"
+    cp -f "$x86" "$ROOT/results/bin/$bin.x86_64"
+    cp -f "$arm" "$ROOT/results/bin/$bin.aarch64"
+    chmod +x "$ROOT/results/bin/$bin.com" "$ROOT/results/bin/$bin.x86_64"
+    python3 "$COSMO/tools/check-fat.py" "$ROOT/results/bin/$bin.com"
+    bash "$ROOT/cli/$pkg/smoke" "$ROOT/results/bin/$bin.com"
+    ;;
+  *)
+    usage
+    ;;
+esac
