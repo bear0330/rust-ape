@@ -97,12 +97,19 @@ without a C library in the host language.
 
 `minimal.diff` for `rg` and `fd` turns off jemalloc. The cosmo target
 reports `env=musl`, which is the switch those projects use to compile
-jemalloc. ripgrep 15.2.0 names that crate `tikv-jemallocator`. pcre2
-stays off, because it is also a C library. cargo_cosmo does not retarget
-a C allocator once per architecture. libcosmo remains the allocator.
-hexyl needs no patch.
+jemalloc. ripgrep 15.2.0 names that crate `tikv-jemallocator`. libcosmo
+remains the allocator. hexyl needs no patch.
 `jaq` defaults to mimalloc, which is the same kind of C allocator, so
 its patch leaves that feature out.
+
+ripgrep's `pcre2` feature links the static PCRE2 from stock `lib/pcre`
+(PCRE2 10.42), built for x86_64 and aarch64 into `cosmos/` the same way
+as the other libraries. `pcre2-sys` does not compile its own C.
+`PCRE2_SYS_STATIC=0` and the per-architecture pkg-config path select
+`cosmos/<arch>/lib/pkgconfig`. `rg --version` still prints `PCRE2 10.45`:
+that number is the constant in `pcre2-sys` 0.2.10, not the library.
+The binary contains the library's own `10.42 2022-12-11` string, and
+JIT stays off because the stock recipe does not pass `--enable-jit`.
 
 `cli/build-ape` also sets `profile.release.strip=false`. fd's release
 profile sets `strip = true`, and that removes the ELF symbol table

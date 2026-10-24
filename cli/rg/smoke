@@ -10,3 +10,14 @@ printf '%s\n' "$out" | grep -F -q 'alpha ape'
 ver=$(bash "$bin" --version)
 printf '%s\n' "$ver"
 printf '%s\n' "$ver" | grep -F -q 'ripgrep 15.2.0'
+printf '%s\n' "$ver" | grep -F -q 'features:+pcre2'
+printf '%s\n' "$ver" | grep -F -q 'is available'
+printf '%s\n' "$ver" | grep -F -q 'JIT is unavailable'
+pver=$(bash "$bin" --pcre2-version)
+printf '%s\n' "$pver"
+printf '%s\n' "$pver" | grep -F -q 'is available'
+strings "$bin" | grep -F -q '10.42 2022-12-11'
+printf 'ape ape\nbeta\n' > "$dir/dup.txt"
+bout=$(bash "$bin" -n --pcre2 --no-ignore '(\w+) \1' "$dir/dup.txt")
+printf '%s\n' "$bout"
+printf '%s\n' "$bout" | grep -F -q 'ape ape'

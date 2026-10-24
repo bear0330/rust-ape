@@ -37,6 +37,12 @@ case "$cmd" in
     }
     clear_host_toolchain
     jobs=${CARGO_BUILD_JOBS:-${MAXPROC:-4}}
+    # Empty for fd, hexyl, and jaq. rg sets APE_FEATURES=pcre2 so cargo
+    # links the static library from lib/pcre instead of the default set.
+    features=
+    if [ -n "${APE_FEATURES:-}" ]; then
+      features="--features ${APE_FEATURES}"
+    fi
     cd "$src"
     # The extracted tree is not a git checkout. Git refuses to ascend into
     # a ceiling directory, so the parent is the ceiling. Naming $src itself
@@ -50,6 +56,7 @@ case "$cmd" in
       CARGO_TARGET_DIR=$TARGET \
       GIT_CEILING_DIRECTORIES=$(dirname "$src") \
       cargo cosmo build --release --bin "$bin" \
+        $features \
         --config profile.release.strip=false
     ;;
   fatten)
