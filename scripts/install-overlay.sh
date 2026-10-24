@@ -24,6 +24,6 @@ DESTINATION=$SUPER/lang/rust
 if [ -e "$DESTINATION" ]; then mkdir -p "$BACKUPS/lang"; mv "$DESTINATION" "$BACKUPS/lang/rust"; fi
 mkdir -p "$SUPER/lang"
 cp -a "$ROOT/lang/rust" "$DESTINATION"
-chmod +x "$DESTINATION/stage"
+chmod +x "$DESTINATION/stage" "$DESTINATION/patch-wrapper"
 grep -Fqx 'include lang/rust/BUILD.mk' "$SUPER/lang/BUILD.mk" || printf '\ninclude lang/rust/BUILD.mk\n' >> "$SUPER/lang/BUILD.mk"
 printf 'Installed Rust overlay into %s. Backup: %s\n' "$SUPER" "$BACKUPS"

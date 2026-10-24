@@ -5,5 +5,7 @@ superconfigure_commit=29009f53a141be8113e7f5729a0a007f1081df58
 target=lang/rust
 artifacts=results/bin/rust-std.com
 cargo_cosmo_commit=c41e7a2df8967c6d551d5686e3392958f597c9ce
+cargo_cosmo_archive=https://github.com/ShieldedLabs/cargo_cosmo/archive/c41e7a2df8967c6d551d5686e3392958f597c9ce.tar.gz
+cargo_cosmo_sha256=1ba52c09b8199d0be8b74bce17f96be9a2f239be6b14c4b682340e0fc590d42d
 cosmocc_sha256=85b8c37a406d862e656ad4ec14be9f6ce474c1b436b9615e91a55208aced3f44
 rust_toolchain=nightly-2026-08-23

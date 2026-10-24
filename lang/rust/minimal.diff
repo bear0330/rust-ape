@@ -1,8 +1,9 @@
-diff --git a/crates/cosmo-build/assets/compat/src/net.rs b/crates/cosmo-build/assets/compat/src/net.rs
-index 5f75b70..bab6782 100644
---- a/crates/cosmo-build/assets/compat/src/net.rs
-+++ b/crates/cosmo-build/assets/compat/src/net.rs
-@@ -73,7 +73,11 @@ fn lookup(g: &crate::xlate::Group, prefix: &str, name: c_int) -> Option<i64> {
+Teach the sockopt shim that Windows SO_REUSEADDR is -5
+(SO_EXCLUSIVEADDRUSE). Apply with `patch -p0 -i minimal.diff` from
+o/lang/rust, which contains the extracted cargo_cosmo tree.
+--- cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce/crates/cosmo-build/assets/compat/src/net.rs
++++ cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce/crates/cosmo-build/assets/compat/src/net.rs
+@@ -73,7 +73,11 @@
      for (i, n) in g.names.iter().enumerate() {
          if n.starts_with(prefix) && g.linux[i] == name as i64 {
              let h = g.host[i];
@@ -15,7 +16,7 @@ index 5f75b70..bab6782 100644
          }
      }
      None
-@@ -329,6 +333,17 @@ mod tests {
+@@ -329,6 +333,17 @@
          });
      }
  
@@ -33,11 +34,9 @@ index 5f75b70..bab6782 100644
      #[test]
      fn windows_pmtu_and_ancillary() {
          with_host("windows", || { let h = "windows";
-diff --git a/crates/cosmo-compat/src/net.rs b/crates/cosmo-compat/src/net.rs
-index 5f75b70..bab6782 100644
---- a/crates/cosmo-compat/src/net.rs
-+++ b/crates/cosmo-compat/src/net.rs
-@@ -73,7 +73,11 @@ fn lookup(g: &crate::xlate::Group, prefix: &str, name: c_int) -> Option<i64> {
+--- cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce/crates/cosmo-compat/src/net.rs
++++ cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce/crates/cosmo-compat/src/net.rs
+@@ -73,7 +73,11 @@
      for (i, n) in g.names.iter().enumerate() {
          if n.starts_with(prefix) && g.linux[i] == name as i64 {
              let h = g.host[i];
@@ -50,7 +49,7 @@ index 5f75b70..bab6782 100644
          }
      }
      None
-@@ -329,6 +333,17 @@ mod tests {
+@@ -329,6 +333,17 @@
          });
      }
  

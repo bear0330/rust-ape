@@ -1,26 +1,25 @@
 #!/bin/sh
-# Drive a pinned cargo_cosmo checkout through superconfigure's stages.
+# Configure, build, and fatten the cargo_cosmo tree. Stock superconfigure
+# already downloaded sources.tar.gz, checked it, and applied minimal.diff.
 # cosmocc is the 4.0.2 release zip that cargo_cosmo measured, unpacked
-# into the checkout. It is not this tree's Cosmopolitan checkout.
+# into that tree. It is not this tree's Cosmopolitan checkout.
 set -eu
 
 usage() {
-  echo "Usage: $0 download|check|patch|configure|build|build-aarch64|fatten" >&2
+  echo "Usage: $0 configure|build|build-aarch64|fatten" >&2
   exit 2
 }
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 WORK=$ROOT/o/lang/rust
-SRC=$WORK/cargo_cosmo
+TREE=cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce
+SRC=$WORK/$TREE
 ZIP=$WORK/cosmocc-4.0.2.zip
-SIG=$ROOT/lang/rust/check.signature
+COSMO_SHA=$ROOT/lang/rust/cosmocc.sha256
+NIGHTLY=nightly-2026-08-23
 # cosmo.zip is the documented host. This network often cannot open it,
 # so the GitHub 4.0.2 release asset is the fallback. Both must match the pin.
 ZIP_URLS="https://cosmo.zip/pub/cosmocc/cosmocc-4.0.2.zip https://github.com/jart/cosmopolitan/releases/download/4.0.2/cosmocc-4.0.2.zip"
-
-pin() {
-  awk -v name="$1" '$2 == name { print $1 }' "$SIG"
-}
 
 need() {
   command -v "$1" >/dev/null || {
@@ -34,74 +33,50 @@ clear_host_toolchain() {
   unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
 }
 
-download() {
-  need git
+fetch_cosmocc() {
   need curl
   need sha256sum
-  pin_commit=$(pin cargo_cosmo)
-  zip_sha=$(pin cosmocc-4.0.2.zip)
-  mkdir -p "$WORK"
-  if [ ! -d "$SRC/.git" ]; then
-    git clone https://github.com/ShieldedLabs/cargo_cosmo.git "$SRC"
-  fi
-  if [ "$(git -C "$SRC" rev-parse HEAD)" != "$pin_commit" ]; then
-    git -C "$SRC" fetch --depth 1 origin "$pin_commit"
-    git -C "$SRC" checkout --detach FETCH_HEAD
-  fi
-  if [ ! -f "$ZIP" ] || ! (cd "$WORK" && echo "$zip_sha  cosmocc-4.0.2.zip" | sha256sum -c -); then
-    rm -f "$ZIP" "$ZIP.part"
-    ok=0
-    for url in $ZIP_URLS; do
-      echo "lang/rust: fetching $url" >&2
-      if curl -fL --connect-timeout 20 --speed-time 30 --speed-limit 1024 \
-          --retry 2 --retry-delay 2 --retry-all-errors \
-          -o "$ZIP.part" "$url" \
-          && echo "$zip_sha  $ZIP.part" | sha256sum -c -; then
-        mv "$ZIP.part" "$ZIP"
-        ok=1
-        break
-      fi
-      echo "lang/rust: $url did not produce the pinned zip" >&2
-      rm -f "$ZIP.part"
-    done
-    [ "$ok" = 1 ] || {
-      echo "lang/rust: could not download cosmocc-4.0.2.zip" >&2
-      exit 1
-    }
-  fi
-}
-
-apply_patch() {
-  if grep -q windows_so_reuseaddr_is_exclusive "$SRC/crates/cosmo-compat/src/net.rs"; then
+  if [ -f "$ZIP" ] && (cd "$WORK" && sha256sum -c "$COSMO_SHA"); then
     return 0
   fi
-  patch -d "$SRC" -p1 --forward -r - < "$ROOT/lang/rust/so-reuseaddr.diff"
-}
-
-check() {
-  pin_commit=$(pin cargo_cosmo)
-  zip_sha=$(pin cosmocc-4.0.2.zip)
-  nightly=$(pin rust-toolchain)
-  got=$(git -C "$SRC" rev-parse HEAD)
-  [ "$got" = "$pin_commit" ] || {
-    echo "lang/rust: cargo_cosmo is $got, signature wants $pin_commit" >&2
+  rm -f "$ZIP" "$ZIP.part"
+  ok=0
+  for url in $ZIP_URLS; do
+    echo "lang/rust: fetching $url" >&2
+    if curl -fL --connect-timeout 20 --speed-time 30 --speed-limit 1024 \
+        --retry 2 --retry-delay 2 --retry-all-errors \
+        -o "$ZIP.part" "$url" \
+        && echo "$(awk '{print $1}' "$COSMO_SHA")  $ZIP.part" | sha256sum -c -; then
+      mv "$ZIP.part" "$ZIP"
+      ok=1
+      break
+    fi
+    echo "lang/rust: $url did not produce the pinned zip" >&2
+    rm -f "$ZIP.part"
+  done
+  [ "$ok" = 1 ] || {
+    echo "lang/rust: could not download cosmocc-4.0.2.zip" >&2
     exit 1
   }
-  echo "$zip_sha  $ZIP" | sha256sum -c -
-  channel=$(sed -n 's/^channel = "\(.*\)"/\1/p' "$SRC/rust-toolchain.toml")
-  [ "$channel" = "$nightly" ] || {
-    echo "lang/rust: rust-toolchain is $channel, signature wants $nightly" >&2
-    exit 1
-  }
+  (cd "$WORK" && sha256sum -c "$COSMO_SHA")
 }
 
 configure() {
+  [ -d "$SRC" ] || {
+    echo "lang/rust: missing extracted tree $SRC" >&2
+    exit 1
+  }
+  channel=$(sed -n 's/^channel = "\(.*\)"/\1/p' "$SRC/rust-toolchain.toml")
+  [ "$channel" = "$NIGHTLY" ] || {
+    echo "lang/rust: rust-toolchain is $channel, want $NIGHTLY" >&2
+    exit 1
+  }
   need rustup
   need python3
   need unzip
-  nightly=$(pin rust-toolchain)
   clear_host_toolchain
-  rustup toolchain install --profile minimal -c rust-src "$nightly"
+  rustup toolchain install --profile minimal -c rust-src "$NIGHTLY"
+  fetch_cosmocc
   cosmo=$SRC/toolchain/cosmocc
   if [ ! -x "$cosmo/bin/apelink" ]; then
     rm -rf "$cosmo"
@@ -113,14 +88,16 @@ configure() {
   if [ "$magic" = "4d5a7146" ]; then
     bash "$SRC/tools/assimilate-toolchain.sh"
   fi
-  CARGO_COSMO_TOOLCHAIN=$nightly python3 "$SRC/tools/gen-target-specs.py"
+  CARGO_COSMO_TOOLCHAIN=$NIGHTLY python3 "$SRC/tools/gen-target-specs.py"
 }
 
 build() {
-  nightly=$(pin rust-toolchain)
+  # collectbuild exports MAXPROC and runs make -j that same count.
+  jobs=${CARGO_BUILD_JOBS:-${MAXPROC:-4}}
   clear_host_toolchain
   cd "$SRC/examples/rust-std"
-  PATH="$SRC/tools:$PATH" CARGO_COSMO_TOOLCHAIN=$nightly cargo cosmo build --release
+  PATH="$SRC/tools:$PATH" CARGO_COSMO_TOOLCHAIN=$NIGHTLY CARGO_BUILD_JOBS=$jobs \
+    cargo cosmo build --release
 }
 
 build_aarch64() {
@@ -167,9 +144,6 @@ fatten() {
 
 [ "$#" -eq 1 ] || usage
 case "$1" in
-  download) download ;;
-  check) check ;;
-  patch) apply_patch ;;
   configure) configure ;;
   build) build ;;
   build-aarch64) build_aarch64 ;;

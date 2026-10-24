@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+patch_file=${1:?patch file required}
+archive=sources.tar.gz
+source_dir=cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce
+
+[ -f "$archive" ] || { echo "missing cargo_cosmo archive: $archive" >&2; exit 1; }
+[ -f "$patch_file" ] || { echo "missing patch: $patch_file" >&2; exit 1; }
+
+# patched is a timestamp target. Recreate this known archive root when its
+# patch input changes, rather than applying a diff to an already patched tree.
+if [ -d "$source_dir" ]; then
+  rm -rf -- "$source_dir"
+fi
+tar xf "$archive"
+exec patch -p0 -i "$patch_file"

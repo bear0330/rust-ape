@@ -16,7 +16,7 @@ esac
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 SOURCE=$(CDPATH= cd -- "$1" && pwd)
-for path in lang/rust/BUILD.mk lang/rust/stage lang/rust/check.signature lang/rust/so-reuseaddr.diff; do
+for path in lang/rust/BUILD.mk lang/rust/stage lang/rust/patch-wrapper lang/rust/check.signature lang/rust/minimal.diff lang/rust/cosmocc.sha256; do
   [ -e "$SOURCE/$path" ] || {
     echo "missing required source path: $SOURCE/$path" >&2
     exit 1

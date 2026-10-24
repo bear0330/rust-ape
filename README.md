@@ -42,13 +42,17 @@ that DrvFs cannot run reliably.
 
 `rustup` must be installed. The recipe installs
 `nightly-2026-08-23` with the `rust-src` component. No `setup` or
-`cosmo` step is required.
+`cosmo` step is required. From the superconfigure checkout:
 
 ```sh
-cd /path/to/superconfigure
-export CARGO_BUILD_JOBS=4
-MAXPROC=4 bash ./.github/scripts/collectbuild lang/rust
+bash ./.github/scripts/collectbuild lang/rust
 ```
+
+That is the whole build. `collectbuild` sees `lang/rust/BUILD.mk` and
+`lang/rust/check.signature`, then `make` downloads `sources.tar.gz`,
+checks it, applies `minimal.diff`, and apelinks `rust-std.com`.
+Cargo uses `collectbuild`'s `MAXPROC` unless `CARGO_BUILD_JOBS` is
+already set.
 
 It writes:
 
@@ -67,8 +71,17 @@ also runs that smoke before it finishes.
 
 ## What the recipe pins
 
-`lang/rust/check.signature` records the cargo_cosmo commit, the
-cosmocc 4.0.2 SHA-256, and the nightly channel. `lang/rust/so-reuseaddr.diff`
-teaches the sockopt shim that Windows `SO_REUSEADDR` is `-5`
-(`SO_EXCLUSIVEADDRUSE`). Without that, `TcpListener::bind` returns
-`ENOPROTOOPT` before `bind`.
+Stock superconfigure downloads the cargo_cosmo archive as
+`sources.tar.gz`, checks `lang/rust/check.signature`, and applies
+`lang/rust/minimal.diff` with `patch -p0`. The signature is the
+SHA-256 of that archive. The extracted root is
+`cargo_cosmo-c41e7a2df8967c6d551d5686e3392958f597c9ce`.
+
+`minimal.diff` teaches the sockopt shim that Windows `SO_REUSEADDR`
+is `-5` (`SO_EXCLUSIVEADDRUSE`). Without that, `TcpListener::bind`
+returns `ENOPROTOOPT` before `bind`.
+
+The cosmocc 4.0.2 zip is the toolchain cargo_cosmo measured, not the
+package archive. `configure` downloads it and checks
+`lang/rust/cosmocc.sha256`. The nightly channel is `nightly-2026-08-23`,
+read from the archive's `rust-toolchain.toml`.
