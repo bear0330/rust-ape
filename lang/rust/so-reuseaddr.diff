@@ -1,0 +1,70 @@
+diff --git a/crates/cosmo-build/assets/compat/src/net.rs b/crates/cosmo-build/assets/compat/src/net.rs
+index 5f75b70..bab6782 100644
+--- a/crates/cosmo-build/assets/compat/src/net.rs
++++ b/crates/cosmo-build/assets/compat/src/net.rs
+@@ -73,7 +73,11 @@ fn lookup(g: &crate::xlate::Group, prefix: &str, name: c_int) -> Option<i64> {
+     for (i, n) in g.names.iter().enumerate() {
+         if n.starts_with(prefix) && g.linux[i] == name as i64 {
+             let h = g.host[i];
+-            return if h > 0 { Some(h) } else { None };
++            // 0 and -1 mean the host has no such option. Any other negative
++            // value is a real option number: Windows SO_REUSEADDR is -5,
++            // SO_EXCLUSIVEADDRUSE (~SO_REUSEADDR). Dropping it makes
++            // TcpListener::bind fail with ENOPROTOOPT before bind().
++            return if h != 0 && h != -1 { Some(h) } else { None };
+         }
+     }
+     None
+@@ -329,6 +333,17 @@ mod tests {
+         });
+     }
+ 
++    #[test]
++    fn windows_so_reuseaddr_is_exclusive() {
++        with_host("windows", || { let h = "windows";
++            let o = on(h, 1, 2).unwrap();
++            assert_eq!(o.level, 65535);
++            assert_eq!(o.name, -5);
++            assert_eq!(o.val, Val::Same);
++            assert_eq!(on(h, 1, 15), None, "SO_REUSEPORT stays absent");
++        });
++    }
++
+     #[test]
+     fn windows_pmtu_and_ancillary() {
+         with_host("windows", || { let h = "windows";
+diff --git a/crates/cosmo-compat/src/net.rs b/crates/cosmo-compat/src/net.rs
+index 5f75b70..bab6782 100644
+--- a/crates/cosmo-compat/src/net.rs
++++ b/crates/cosmo-compat/src/net.rs
+@@ -73,7 +73,11 @@ fn lookup(g: &crate::xlate::Group, prefix: &str, name: c_int) -> Option<i64> {
+     for (i, n) in g.names.iter().enumerate() {
+         if n.starts_with(prefix) && g.linux[i] == name as i64 {
+             let h = g.host[i];
+-            return if h > 0 { Some(h) } else { None };
++            // 0 and -1 mean the host has no such option. Any other negative
++            // value is a real option number: Windows SO_REUSEADDR is -5,
++            // SO_EXCLUSIVEADDRUSE (~SO_REUSEADDR). Dropping it makes
++            // TcpListener::bind fail with ENOPROTOOPT before bind().
++            return if h != 0 && h != -1 { Some(h) } else { None };
+         }
+     }
+     None
+@@ -329,6 +333,17 @@ mod tests {
+         });
+     }
+ 
++    #[test]
++    fn windows_so_reuseaddr_is_exclusive() {
++        with_host("windows", || { let h = "windows";
++            let o = on(h, 1, 2).unwrap();
++            assert_eq!(o.level, 65535);
++            assert_eq!(o.name, -5);
++            assert_eq!(o.val, Val::Same);
++            assert_eq!(on(h, 1, 15), None, "SO_REUSEPORT stays absent");
++        });
++    }
++
+     #[test]
+     fn windows_pmtu_and_ancillary() {
+         with_host("windows", || { let h = "windows";

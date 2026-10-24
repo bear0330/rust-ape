@@ -1,0 +1,9 @@
+# The released base framework on which this overlay is applied.
+superconfigure_repository=https://github.com/ahgamut/superconfigure.git
+superconfigure_ref=z0.0.66
+superconfigure_commit=29009f53a141be8113e7f5729a0a007f1081df58
+target=lang/rust
+artifacts=results/bin/rust-std.com
+cargo_cosmo_commit=c41e7a2df8967c6d551d5686e3392958f597c9ce
+cosmocc_sha256=85b8c37a406d862e656ad4ec14be9f6ce474c1b436b9615e91a55208aced3f44
+rust_toolchain=nightly-2026-08-23
