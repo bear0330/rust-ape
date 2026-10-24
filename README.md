@@ -87,7 +87,7 @@ bash ./.github/scripts/collectbuild cli/jaq
 
 The results are `results/bin/rg.com`, `results/bin/fd.com`,
 `results/bin/hexyl.com`, and `results/bin/jaq.com`, plus the x86_64
-and aarch64 ELF slices. `rg` is ripgrep 14.1.1, `fd` is 10.2.0,
+and aarch64 ELF slices. `rg` is ripgrep 15.2.0, `fd` is 10.2.0,
 `hexyl` is 0.16.0, and `jaq` is 3.1.2.
 
 `jaq` is the one meant to be wrapped by another language. It is a
@@ -97,8 +97,10 @@ without a C library in the host language.
 
 `minimal.diff` for `rg` and `fd` turns off jemalloc. The cosmo target
 reports `env=musl`, which is the switch those projects use to compile
-jemalloc, and cargo_cosmo does not retarget a C allocator once per
-architecture. libcosmo remains the allocator. hexyl needs no patch.
+jemalloc. ripgrep 15.2.0 names that crate `tikv-jemallocator`. pcre2
+stays off, because it is also a C library. cargo_cosmo does not retarget
+a C allocator once per architecture. libcosmo remains the allocator.
+hexyl needs no patch.
 `jaq` defaults to mimalloc, which is the same kind of C allocator, so
 its patch leaves that feature out.
 

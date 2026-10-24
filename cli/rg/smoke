@@ -9,4 +9,4 @@ printf '%s\n' "$out"
 printf '%s\n' "$out" | grep -F -q 'alpha ape'
 ver=$(bash "$bin" --version)
 printf '%s\n' "$ver"
-printf '%s\n' "$ver" | grep -F -q 'ripgrep 14.1.1'
+printf '%s\n' "$ver" | grep -F -q 'ripgrep 15.2.0'
